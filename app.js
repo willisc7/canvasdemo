@@ -1,9 +1,12 @@
 const express = require('express');
 const ejs = require('ejs');
-const {VertexAI} = require('@google-cloud/vertexai');
-const {Firestore} = require('@google-cloud/firestore');
+const { VertexAI } = require('@google-cloud/vertexai');
+const { Firestore } = require('@google-cloud/firestore');
+const gcpMetadata = require('gcp-metadata');
 
-const vertex_ai = new VertexAI({project: 'next24demo1', location: 'us-central1'});
+const projectId = await gcpMetadata.project('project-id');
+const region = await gcpMetadata.instance('region');
+const vertex_ai = new VertexAI({ project: projectId, location: region });
 const model = 'gemini-1.0-pro-001';
 
 // Instantiate the models
@@ -16,32 +19,32 @@ const generativeModel = vertex_ai.preview.getGenerativeModel({
   },
   safetySettings: [
     {
-        'category': 'HARM_CATEGORY_HATE_SPEECH',
-        'threshold': 'BLOCK_MEDIUM_AND_ABOVE'
+      'category': 'HARM_CATEGORY_HATE_SPEECH',
+      'threshold': 'BLOCK_MEDIUM_AND_ABOVE'
     },
     {
-        'category': 'HARM_CATEGORY_DANGEROUS_CONTENT',
-        'threshold': 'BLOCK_MEDIUM_AND_ABOVE'
+      'category': 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      'threshold': 'BLOCK_MEDIUM_AND_ABOVE'
     },
     {
-        'category': 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-        'threshold': 'BLOCK_MEDIUM_AND_ABOVE'
+      'category': 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      'threshold': 'BLOCK_MEDIUM_AND_ABOVE'
     },
     {
-        'category': 'HARM_CATEGORY_HARASSMENT',
-        'threshold': 'BLOCK_MEDIUM_AND_ABOVE'
+      'category': 'HARM_CATEGORY_HARASSMENT',
+      'threshold': 'BLOCK_MEDIUM_AND_ABOVE'
     }
   ],
 });
 
 
 // Initialize Cloud Firestore client
-const db = new Firestore({projectId: 'next24demo1', databaseId: process.env.FIRESTORE_DB_NAME});
+const db = new Firestore({ projectId: projectId, databaseId: process.env.FIRESTORE_DB_NAME });
 
 const app = express();
 app.set('view engine', 'ejs');
 app.use(express.static('public'));
-app.use(express.urlencoded({extended: true}));
+app.use(express.urlencoded({ extended: true }));
 
 // Home page
 app.get('/', (req, res) => {
@@ -64,14 +67,14 @@ app.post('/generate', async (req, res) => {
   Serve superhero-themed snacks like 'Cape Cupcakes' and 'Power Punch'
   `;
   const request = {
-    contents: [{role: 'user', parts: [{text: prompt}]}],
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
   };
   const result = await generativeModel.generateContent(request);
   const response = result.response;
   console.log('Response: ', JSON.stringify(response));
   const ideas = response.candidates[0].content.parts[0].text.split("$$")
 
-  res.render('ideas', {name, age, ideas});
+  res.render('ideas', { name, age, ideas });
 });
 
 // Save ideas to Firestore
@@ -80,7 +83,7 @@ app.post('/save', async (req, res) => {
 
   console.log(req.body)
   try {
-    const docRef = await db.collection('ideas').add({ideas: ideasToSave});
+    const docRef = await db.collection('ideas').add({ ideas: ideasToSave });
     console.log('Ideas saved with ID:', docRef.id);
     res.redirect('/');
   } catch (error) {
