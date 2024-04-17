@@ -1,0 +1,1 @@
+I want a webapp that uses an LLM to generate birthday party ideas.  The app can then save those ideas in a database
