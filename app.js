@@ -6,7 +6,9 @@ const gcpMetadata = require('gcp-metadata');
 
 async function main() {
   let projectId = await gcpMetadata.project('project-id');
-  let region = await gcpMetadata.instance('region');
+  let region = await gcpMetadata.instance('region').then(data => data.split('/').pop());
+  console.log(projectId)
+  console.log(region)
   let vertex_ai = new VertexAI({ project: projectId, location: region });
   let model = 'gemini-1.0-pro-001';
 // Instantiate the models
